@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seu Carrinho | LPZ7X Store</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Estilos específicos para a página do carrinho */
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .cart-item-details {
+            flex-grow: 1;
+            padding-left: 20px;
+        }
+        .cart-actions {
+            display: flex;
+            align-items: center;
+        }
+        .remover-btn {
+            background: none;
+            border: none;
+            color: red;
+            cursor: pointer;
+            margin-left: 15px;
+            font-size: 1em;
+        }
+        .total-summary {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #000;
+            text-align: right;
+        }
+        .total-summary h3 {
+            font-size: 1.5em;
+        }
+        .checkout-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <h1 class="logo">LPZ7X</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Início</a></li>
+                    <li><a href="index.html#camisas-time">Times</a></li>
+                    <li><a href="index.html#marcas-luxo">Marcas</a></li>
+                    <li><a href="index.html#Tenis">Tenis</a></li>
+                    <li><a href="index.html#suporte">Contato</a></li>
+                </ul>
+            </nav>
+            <div class="cart-icon">
+                <a href="carrinho.html">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cart-count">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 100px;">
+        <h2>Seu Carrinho de Compras</h2>
+
+        <div id="cart-items-list">
+            <p id="empty-cart-message">Seu carrinho está vazio.</p>
+        </div>
+
+        <div class="total-summary">
+            <h3>Total da Compra (Itens Marcados): <span id="cart-total">R$ 0,00</span></h3>
+            <button class="checkout-btn" onclick="finalizarCompra()">Finalizar Compra</button>
+        </div>
+
+    </main>
+
+    <footer id="suporte">
+        </footer>
+
+    <script>
+        // --- Lógica do Carrinho (Exclusiva para a Página do Carrinho) ---
+
+        // Carrega o carrinho e salva
+        function getCart() {
+            const cart = localStorage.getItem('lpz7x_cart');
+            return cart ? JSON.parse(cart) : [];
+        }
+
+        function saveCart(cart) {
+            localStorage.setItem('lpz7x_cart', JSON.stringify(cart));
+        }
+
+        // Função principal para renderizar os itens
+        function renderCart() {
+            let cart = getCart();
+            const listElement = document.getElementById('cart-items-list');
+            const emptyMessage = document.getElementById('empty-cart-message');
+
+            listElement.innerHTML = ''; // Limpa a lista
+            
+            if (cart.length === 0) {
+                emptyMessage.style.display = 'block';
+                document.getElementById('cart-total').textContent = 'R$ 0,00';
+                return;
+            }
+            emptyMessage.style.display = 'none';
+
+            cart.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'cart-item';
+                itemDiv.innerHTML = `
+                    <div class="cart-actions">
+                        <input type="checkbox" 
+                               data-index="${index}" 
+                               ${item.selected ? 'checked' : ''} 
+                               onchange="toggleSelection(${index})">
+                        <button class="remover-btn" onclick="removeItem(${index})">
+                            <i class="fas fa-trash"></i> Remover
+                        </button>
+                    </div>
+                    <div class="cart-item-details">
+                        <strong>${item.name}</strong> 
+                        <br>
+                        <span>Preço: R$ ${item.price.toFixed(2).replace('.', ',')}</span> 
+                        </div>
+                `;
+                listElement.appendChild(itemDiv);
+            });
+
+            updateTotal();
+        }
+
+        // Função para remover um item
+        function removeItem(index) {
+            let cart = getCart();
+            const itemName = cart[index].name;
+            
+            // Remove o item do array
+            cart.splice(index, 1);
+            
+            saveCart(cart);
+            alert(`"${itemName}" foi removido do seu carrinho.`);
+            renderCart(); // Renderiza a lista novamente
+        }
+
+        // Função para selecionar/desmarcar um item
+        function toggleSelection(index) {
+            let cart = getCart();
+            // Inverte o estado 'selected'
+            cart[index].selected = !cart[index].selected; 
+            
+            saveCart(cart);
+            updateTotal(); // Atualiza o total imediatamente
+        }
+
+        // Função que calcula o total APENAS dos itens marcados
+        function updateTotal() {
+            const cart = getCart();
+            let total = 0;
+
+            cart.forEach(item => {
+                if (item.selected) {
+                    // Se o item estiver selecionado, adicione seu preço ao total
+                    // Se você tivesse quantidade, usaria: total += item.price * item.quantity;
+                    total += item.price;
+                }
+            });
+
+            // Atualiza o valor na tela
+            document.getElementById('cart-total').textContent = total.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+            
+            // Também é bom atualizar a contagem do carrinho no cabeçalho
+            updateCartCount();
+        }
+
+        // Função de exemplo para finalizar a compra
+        function finalizarCompra() {
+            const cart = getCart();
+            const selectedItems = cart.filter(item => item.selected);
+            const total = document.getElementById('cart-total').textContent;
+
+            if (selectedItems.length === 0) {
+                 alert("Selecione pelo menos um item para finalizar a compra.");
+                 return;
+            }
+
+            // Em um sistema real, aqui você faria uma requisição para o seu backend (PHP)
+            // enviando APENAS os dados dos selectedItems para iniciar o processo de checkout.
+            
+            let message = "Compra iniciada com sucesso! Itens selecionados:\n";
+            selectedItems.forEach(item => {
+                message += `- ${item.name} (R$ ${item.price.toFixed(2).replace('.', ',')})\n`;
+            });
+            message += `\nTotal a Pagar: ${total}`;
+            
+            alert(message);
+        }
+
+        // Inicializa a página do carrinho
+        document.addEventListener('DOMContentLoaded', renderCart);
+        
+        // A função updateCartCount do script.js deve ser importada ou copiada aqui
+        function updateCartCount() {
+            const cart = getCart();
+            const countElement = document.getElementById('cart-count');
+            if (countElement) {
+                countElement.textContent = cart.length;
+            }
+        }
+    </script>
+</body>
+</html>
